@@ -17,7 +17,8 @@ bot = Client("advanced_logo_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BO
 
 @bot.on_message(filters.command("start"))
 async def start(_, m: Message):
-    await m.reply_text("স্বাগতম! `/logo <text>` দিয়ে লোগো বানাও।\nস্টাইল দিতে চাইলে `/style 3d`, `/style fluffy` এসব দাও।")
+    await m.reply_text("স্বাগতম! `/logo <text>` দিয়ে লোগো বানাও।
+স্টাইল দিতে চাইলে `/style 3d`, `/style fluffy` এসব দাও।")
 
 @bot.on_message(filters.command("style"))
 async def set_style(_, m: Message):
@@ -45,10 +46,6 @@ bot.db = {}
 
 bot.run()
 
-
-
-
-
 # Dummy HTTP server for Render port binding
 import os
 from flask import Flask
@@ -61,7 +58,7 @@ def home():
     return "Bot is alive!"
 
 def run():
-    port = int(os.environ.get("PORT", 8080))
+    port = int(os.environ.get("PORT", 80))  # Default port 80
     app.run(host="0.0.0.0", port=port)
 
 threading.Thread(target=run).start()
