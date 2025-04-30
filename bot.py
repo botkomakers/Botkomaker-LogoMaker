@@ -1,9 +1,12 @@
-
 from pyrogram import Client, filters
 from pyrogram.types import Message
 import requests
 from config import API_ID, API_HASH, BOT_TOKEN
+import os
+from flask import Flask
+import threading
 
+# স্টাইল অপশন
 FLAME_STYLES = {
     "fluffy": "fluffy-logo",
     "runner": "runner-logo",
@@ -13,12 +16,26 @@ FLAME_STYLES = {
     "3d": "3d-logo"
 }
 
+# Flask Dummy Server (Render Port Binding Fix)
+app = Flask(__name__)
+@app.route('/')
+def home():
+    return "Bot is alive!"
+def run():
+    port = int(os.environ.get("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
+threading.Thread(target=run).start()
+
+# Bot
 bot = Client("advanced_logo_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+bot.db = {}  # ইন-মেমরি ডেটাবেস
 
 @bot.on_message(filters.command("start"))
 async def start(_, m: Message):
-    await m.reply_text("স্বাগতম! `/logo <text>` দিয়ে লোগো বানাও।
-স্টাইল দিতে চাইলে `/style 3d`, `/style fluffy` এসব দাও।")
+    await m.reply_text(
+        "স্বাগতম! `/logo <text>` দিয়ে লোগো বানাও।\n"
+        "স্টাইল দিতে চাইলে `/style 3d`, `/style fluffy` এসব দাও।"
+    )
 
 @bot.on_message(filters.command("style"))
 async def set_style(_, m: Message):
@@ -41,24 +58,4 @@ async def logo(_, m: Message):
 
     await m.reply_photo(photo=logo_url, caption=f"`{text}` এর `{style}` লোগো!")
 
-# ইন-মেমরি ডেটাবেস
-bot.db = {}
-
 bot.run()
-
-# Dummy HTTP server for Render port binding
-import os
-from flask import Flask
-import threading
-
-app = Flask(__name__)
-
-@app.route('/')
-def home():
-    return "Bot is alive!"
-
-def run():
-    port = int(os.environ.get("PORT", 80))  # Default port 80
-    app.run(host="0.0.0.0", port=port)
-
-threading.Thread(target=run).start()
