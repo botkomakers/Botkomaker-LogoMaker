@@ -1,61 +1,98 @@
-from pyrogram import Client, filters
-from pyrogram.types import Message
 import requests
-from config import API_ID, API_HASH, BOT_TOKEN
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 import os
 from flask import Flask
 import threading
 
-# স্টাইল অপশন
-FLAME_STYLES = {
-    "fluffy": "fluffy-logo",
-    "runner": "runner-logo",
-    "glow": "glow-logo",
-    "ice": "ice-logo",
-    "metal": "steel-logo",
-    "3d": "3d-logo"
-}
+# Telegram Bot API Token
+API_TOKEN = os.getenv('API_TOKEN')
 
 # Flask Dummy Server (Render Port Binding Fix)
 app = Flask(__name__)
+
 @app.route('/')
 def home():
     return "Bot is alive!"
+
 def run():
     port = int(os.environ.get("PORT", 8000))
     app.run(host="0.0.0.0", port=port)
-threading.Thread(target=run).start()
 
-# Bot
-bot = Client("advanced_logo_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
-bot.db = {}  # ইন-মেমরি ডেটাবেস
+# Start command handler
+def start(update: Update, context: CallbackContext):
+    update.message.reply_text("Hello! Send any text to generate a logo.")
 
-@bot.on_message(filters.command("start"))
-async def start(_, m: Message):
-    await m.reply_text(
-        "স্বাগতম! `/logo <text>` দিয়ে লোগো বানাও।\n"
-        "স্টাইল দিতে চাইলে `/style 3d`, `/style fluffy` এসব দাও।"
+# Function to generate logo
+def generate_logo(update: Update, context: CallbackContext):
+    user_text = update.message.text
+    chat_id = update.message.chat.id
+    
+    # Sending action to let user know that the bot is processing
+    context.bot.send_chat_action(chat_id=chat_id, action="upload_photo")
+    
+    # Theme URL for text design
+    theme = 'https://textpro.me/create-light-glow-sliced-text-effect-online-1068.html'
+
+    # Sending request to the API for logo generation
+    response = requests.post(
+        url='https://textpro.vercel.app/api',
+        json={'text': user_text, 'theme': theme},
+        headers={"Authorization": "TechnoStone"}
     )
+    
+    if response.status_code == 200:
+        result = response.json()
+        status = result.get('status', False)
+        
+        if status:
+            logo = result.get('logo', '')
+            if logo:
+                context.bot.send_photo(
+                    chat_id=chat_id,
+                    photo=logo,
+                    caption="<b>Your Logo Generated</b>",
+                    parse_mode="HTML"
+                )
+            else:
+                context.bot.send_message(
+                    chat_id=chat_id,
+                    text="No logo generated. Please try again.",
+                    parse_mode="HTML"
+                )
+        else:
+            context.bot.send_message(
+                chat_id=chat_id,
+                text="There was an issue with generating the logo. Please try again later.",
+                parse_mode="HTML"
+            )
+    else:
+        context.bot.send_message(
+            chat_id=chat_id,
+            text="Failed to connect to the API. Please try again later.",
+            parse_mode="HTML"
+        )
 
-@bot.on_message(filters.command("style"))
-async def set_style(_, m: Message):
-    if len(m.command) < 2:
-        return await m.reply_text("স্টাইল দিন যেমন `/style 3d`")
-    style = m.command[1].lower()
-    if style not in FLAME_STYLES:
-        return await m.reply_text("ভুল স্টাইল! Valid: " + ", ".join(FLAME_STYLES))
-    bot.db[m.from_user.id] = style
-    await m.reply_text(f"স্টাইল `{style}` সেট হয়েছে!")
+def main():
+    # Create the Updater and pass it your bot's token.
+    updater = Updater(API_TOKEN, use_context=True)
 
-@bot.on_message(filters.command("logo"))
-async def logo(_, m: Message):
-    if len(m.command) < 2:
-        return await m.reply_text("লেখা দিন! যেমন `/logo আমার নাম`")
+    # Get the dispatcher to register handlers
+    dispatcher = updater.dispatcher
 
-    text = " ".join(m.command[1:])
-    style = bot.db.get(m.from_user.id, "fluffy")  # default style
-    logo_url = f"https://flamingtext.com/net-fu/proxy_form.cgi?script={FLAME_STYLES[style]}&text={text}&_loc=generate&imageoutput=true"
+    # Add command and message handlers
+    dispatcher.add_handler(CommandHandler('start', start))
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, generate_logo))
 
-    await m.reply_photo(photo=logo_url, caption=f"`{text}` এর `{style}` লোগো!")
+    # Start the Bot
+    updater.start_polling()
 
-bot.run()
+    # Run the bot until you send a signal to stop it
+    updater.idle()
+
+if __name__ == '__main__':
+    # Start the Flask dummy server
+    threading.Thread(target=run).start()
+    
+    # Run the Telegram bot
+    main()
