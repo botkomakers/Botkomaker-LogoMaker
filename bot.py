@@ -1,6 +1,7 @@
 import requests
 from telegram import Update
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram.ext import Updater, CommandHandler, MessageHandler, CallbackContext
+from telegram.ext import filters
 import os
 from flask import Flask
 import threading
@@ -82,7 +83,7 @@ def main():
 
     # Add command and message handlers
     dispatcher.add_handler(CommandHandler('start', start))
-    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, generate_logo))
+    dispatcher.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, generate_logo))
 
     # Start the Bot
     updater.start_polling()
