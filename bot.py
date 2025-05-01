@@ -6,7 +6,7 @@ from flask import Flask
 import threading
 
 # Telegram Bot API Token
-API_TOKEN = os.getenv('API_TOKEN')
+API_TOKEN = os.getenv('6247307259:AAEVNjAa0X4-vbr9bNNqQD_i109OsHYZGUY')
 
 # Flask Dummy Server (Render Port Binding Fix)
 app = Flask(__name__)
